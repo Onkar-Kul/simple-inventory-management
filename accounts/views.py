@@ -2,8 +2,10 @@ from django.contrib.auth import authenticate
 from django.shortcuts import render
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.serializers import UserCreateSerializer, UserLoginSerializer
@@ -69,3 +71,17 @@ class UserLoginView(APIView):
         else:
             return Response({'errors': {'non_field_errors': ['Email or Password is not Valid']}},
                             status=status.HTTP_404_NOT_FOUND)
+
+
+class UserLogoutView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        try:
+            refresh_token = request.data["refresh_token"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response({'msg': 'Logout successful.'}, status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
